@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 import { saveTemplate } from "@/lib/template-storage"
+import PromptEditor from "@/components/prompt-editor"
+import SystemPromptEditor from "@/components/system-prompt-editor"
 
 export default function NewTemplatePage() {
   const router = useRouter()
@@ -15,6 +17,7 @@ export default function NewTemplatePage() {
   const [name, setName] = useState("")
   const [template, setTemplate] = useState("Write a $type about $topic.")
   const [systemPrompt, setSystemPrompt] = useState("")
+  const [editorMode, setEditorMode] = useState<"template" | "system">("template")
 
   const handleCreate = () => {
     try {
@@ -62,25 +65,30 @@ export default function NewTemplatePage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="template">Template</Label>
-            <textarea
-              id="template"
-              value={template}
-              onChange={(e) => setTemplate(e.target.value)}
-              className="w-full min-h-[200px] p-3 border rounded-md font-mono"
-              placeholder="Enter your template. Use $variable_name syntax for variables."
-            />
-          </div>
+            <div className="flex justify-end mb-2">
+              <div className="inline-flex rounded-md shadow-sm">
+                <Button
+                  variant={editorMode === "template" ? "default" : "outline"}
+                  onClick={() => setEditorMode("template")}
+                  className="rounded-r-none"
+                >
+                  Template
+                </Button>
+                <Button
+                  variant={editorMode === "system" ? "default" : "outline"}
+                  onClick={() => setEditorMode("system")}
+                  className="rounded-l-none"
+                >
+                  System Prompt
+                </Button>
+              </div>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="systemPrompt">System Prompt (Optional)</Label>
-            <textarea
-              id="systemPrompt"
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              className="w-full min-h-[100px] p-3 border rounded-md font-mono"
-              placeholder="Enter a system prompt (optional)"
-            />
+            {editorMode === "template" ? (
+              <PromptEditor template={template} setTemplate={setTemplate} />
+            ) : (
+              <SystemPromptEditor systemPrompt={systemPrompt} setSystemPrompt={setSystemPrompt} />
+            )}
           </div>
 
           <div className="flex justify-end">
