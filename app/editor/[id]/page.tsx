@@ -20,6 +20,7 @@ import ResponseDisplay from "@/components/response-display"
 import FeedbackForm from "@/components/feedback-form"
 import ApiKeyForm from "@/components/api-key-form"
 import PopulatedPreview from "@/components/populated-preview"
+import PreviousMessagesEditor, { Message } from "@/components/previous-messages-editor"
 import { extractVariables } from "@/lib/template-utils"
 import { useToast } from "@/components/ui/use-toast"
 import { Template, getTemplate, updateTemplate } from "@/lib/template-storage"
@@ -46,6 +47,7 @@ export default function EditorPage({ params }: { params: { id: string } }) {
   const [improvedSystemPrompt, setImprovedSystemPrompt] = useState<string>("")
   const [activeTab, setActiveTab] = useState<string>("editor")
   const [templateName, setTemplateName] = useState<string>("")
+  const [previousMessages, setPreviousMessages] = useState<Message[]>([])
 
   useEffect(() => {
     if (params.id !== "new") {
@@ -54,6 +56,7 @@ export default function EditorPage({ params }: { params: { id: string } }) {
         setTemplate(savedTemplate.template)
         setSystemPrompt(savedTemplate.systemPrompt || "")
         setTemplateName(savedTemplate.name)
+        setPreviousMessages(savedTemplate.previousMessages || [])
       } else {
         toast({
           title: "Template Not Found",
@@ -108,6 +111,7 @@ export default function EditorPage({ params }: { params: { id: string } }) {
           name: templateName || "Untitled Template",
           template,
           systemPrompt,
+          previousMessages,
         }
         updateTemplate(params.id, newTemplate)
         toast({
@@ -120,6 +124,7 @@ export default function EditorPage({ params }: { params: { id: string } }) {
           name: templateName,
           template,
           systemPrompt,
+          previousMessages,
         })
         toast({
           title: "Template Updated",
@@ -172,6 +177,7 @@ export default function EditorPage({ params }: { params: { id: string } }) {
           model: selectedModel,
           reasoningEffort: REASONING_MODELS.includes(selectedModel) ? reasoningEffort : undefined,
           apiKey,
+          previousMessages,
         }),
       })
 
@@ -219,6 +225,7 @@ export default function EditorPage({ params }: { params: { id: string } }) {
           apiKey,
           model: selectedModel,
           reasoningEffort: REASONING_MODELS.includes(selectedModel) ? reasoningEffort : undefined,
+          previousMessages,
         }),
       })
 
@@ -279,8 +286,9 @@ export default function EditorPage({ params }: { params: { id: string } }) {
 
         <div className="lg:col-span-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-5 mb-4">
+            <TabsList className="grid grid-cols-6 mb-4">
               <TabsTrigger value="editor">Editor</TabsTrigger>
+              <TabsTrigger value="messages">Messages</TabsTrigger>
               <TabsTrigger value="variables">Variables</TabsTrigger>
               <TabsTrigger value="preview">Preview</TabsTrigger>
               <TabsTrigger value="response">Response</TabsTrigger>
@@ -323,11 +331,24 @@ export default function EditorPage({ params }: { params: { id: string } }) {
               <Button onClick={() => setActiveTab("variables")}>Next: Fill Variables</Button>
             </TabsContent>
 
-            <TabsContent value="variables" className="space-y-4">
-              <VariableForm variables={variables} setVariables={setVariables} extractedVars={extractedVars} />
+            <TabsContent value="messages" className="space-y-4">
+              <PreviousMessagesEditor
+                messages={previousMessages}
+                setMessages={setPreviousMessages}
+              />
               <div className="flex justify-between">
                 <Button variant="outline" onClick={() => setActiveTab("editor")}>
                   Back to Editor
+                </Button>
+                <Button onClick={() => setActiveTab("variables")}>Next: Fill Variables</Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="variables" className="space-y-4">
+              <VariableForm variables={variables} setVariables={setVariables} extractedVars={extractedVars} />
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setActiveTab("messages")}>
+                  Back to Messages
                 </Button>
                 <Button onClick={goToPreview}>Next: Preview Prompt</Button>
               </div>
@@ -344,6 +365,37 @@ export default function EditorPage({ params }: { params: { id: string } }) {
                   </CardContent>
                 </Card>
               )}
+
+              {previousMessages.length > 0 && (
+                <Card className="mb-4">
+                  <CardHeader>
+                    <CardTitle>Previous Messages</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {previousMessages.map((message, index) => (
+                        <div
+                          key={index}
+                          className={`p-3 rounded-md ${message.role === "user"
+                            ? "bg-blue-50 dark:bg-blue-900/20"
+                            : message.role === "assistant"
+                              ? "bg-green-50 dark:bg-green-900/20"
+                              : "bg-purple-50 dark:bg-purple-900/20"
+                            }`}
+                        >
+                          <div className="font-semibold text-sm mb-1 capitalize">
+                            {message.role}
+                          </div>
+                          <div className="text-sm whitespace-pre-wrap">
+                            {message.content}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               <PopulatedPreview populatedPrompt={populatedPrompt} />
               <div className="flex justify-between">
                 <Button variant="outline" onClick={() => setActiveTab("variables")}>

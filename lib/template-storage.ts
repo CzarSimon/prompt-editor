@@ -1,10 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
+import { Message } from '@/components/previous-messages-editor'
 
 export interface Template {
     id: string
     name: string
     template: string
     systemPrompt?: string
+    previousMessages?: Message[]
     createdAt: string
     updatedAt: string
 }
