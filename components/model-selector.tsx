@@ -17,12 +17,15 @@ export default function ModelSelector({
   selectedModel,
   setSelectedModel,
   reasoningEffort = "medium",
-  setReasoningEffort = () => {},
+  setReasoningEffort = () => { },
 }: ModelSelectorProps) {
   const models = [
     { id: "gpt-4o", name: "GPT-4o" },
     { id: "gpt-4o-mini", name: "GPT-4o Mini" },
     { id: "gpt-4.5-preview", name: "GPT-4.5 Preview" },
+    { id: "gpt-4.1", name: "GPT-4.1" },
+    { id: "gpt-4.1-mini", name: "GPT-4.1 Mini" },
+    { id: "gpt-4.1-nano", name: "GPT-4.1 Nano" },
     { id: "o3-mini", name: "o3-mini" },
     { id: "o1", name: "o1" },
     { id: "o1-pro", name: "o1-pro" },

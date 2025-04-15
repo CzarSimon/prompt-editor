@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,6 +12,8 @@ import PromptEditor from "@/components/prompt-editor"
 import SystemPromptEditor from "@/components/system-prompt-editor"
 import PreviousMessagesEditor, { Message } from "@/components/previous-messages-editor"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { extractVariables } from "@/lib/template-utils"
+import VariableForm from "@/components/variable-form"
 
 export default function NewTemplatePage() {
   const router = useRouter()
@@ -22,6 +24,31 @@ export default function NewTemplatePage() {
   const [editorMode, setEditorMode] = useState<"template" | "system">("template")
   const [previousMessages, setPreviousMessages] = useState<Message[]>([])
   const [activeTab, setActiveTab] = useState<string>("editor")
+  const [variables, setVariables] = useState<Record<string, string>>({})
+  const [extractedVars, setExtractedVars] = useState<string[]>([])
+
+  // Extract variables from template when it changes
+  useEffect(() => {
+    const vars = extractVariables(template)
+    setExtractedVars(vars)
+
+    // Initialize variables object with empty strings for any new variables
+    const newVars = { ...variables }
+    vars.forEach((v) => {
+      if (!(v in newVars)) {
+        newVars[v] = ""
+      }
+    })
+
+    // Remove any variables that are no longer in the template
+    Object.keys(newVars).forEach((key) => {
+      if (!vars.includes(key)) {
+        delete newVars[key]
+      }
+    })
+
+    setVariables(newVars)
+  }, [template])
 
   const handleCreate = () => {
     try {
@@ -30,6 +57,7 @@ export default function NewTemplatePage() {
         template,
         systemPrompt,
         previousMessages,
+        variables,
       })
       toast({
         title: "Template Created",
@@ -70,9 +98,10 @@ export default function NewTemplatePage() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 mb-4">
+            <TabsList className="grid grid-cols-4 mb-4">
               <TabsTrigger value="editor">Editor</TabsTrigger>
               <TabsTrigger value="messages">Previous Messages</TabsTrigger>
+              <TabsTrigger value="variables">Variables</TabsTrigger>
               <TabsTrigger value="preview">Preview</TabsTrigger>
             </TabsList>
 
@@ -108,6 +137,10 @@ export default function NewTemplatePage() {
                 messages={previousMessages}
                 setMessages={setPreviousMessages}
               />
+            </TabsContent>
+
+            <TabsContent value="variables" className="space-y-4">
+              <VariableForm variables={variables} setVariables={setVariables} extractedVars={extractedVars} />
             </TabsContent>
 
             <TabsContent value="preview" className="space-y-4">
@@ -151,6 +184,24 @@ export default function NewTemplatePage() {
                             </div>
                             <div className="text-sm whitespace-pre-wrap">
                               {message.content}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {extractedVars.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Variables</h3>
+                      <div className="space-y-2">
+                        {extractedVars.map((variable) => (
+                          <div key={variable} className="p-3 bg-muted rounded-md">
+                            <div className="font-semibold text-sm mb-1">
+                              ${variable}
+                            </div>
+                            <div className="text-sm whitespace-pre-wrap">
+                              {variables[variable] || "(empty)"}
                             </div>
                           </div>
                         ))}

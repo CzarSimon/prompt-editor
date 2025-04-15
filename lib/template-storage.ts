@@ -7,6 +7,7 @@ export interface Template {
     template: string
     systemPrompt?: string
     previousMessages?: Message[]
+    variables?: Record<string, string>
     createdAt: string
     updatedAt: string
 }

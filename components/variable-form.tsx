@@ -55,6 +55,9 @@ export default function VariableForm({ variables, setVariables, extractedVars }:
     )
   }
 
+  console.log("extractedVars", extractedVars);
+  console.log("variables", variables);
+
   return (
     <Card>
       <CardHeader>
@@ -67,7 +70,11 @@ export default function VariableForm({ variables, setVariables, extractedVars }:
               <Label htmlFor={`var-${variable}`}>{variable}</Label>
               <Textarea
                 id={`var-${variable}`}
-                ref={(el) => (textareaRefs.current[variable] = el)}
+                ref={(el) => {
+                  if (el) {
+                    textareaRefs.current[variable] = el
+                  }
+                }}
                 value={variables[variable] || ""}
                 onChange={(e) => handleChange(variable, e.target.value)}
                 onInput={handleTextareaInput}

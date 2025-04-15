@@ -8,7 +8,7 @@ import { CardHeader } from "@/components/ui/card"
 
 import { Card } from "@/components/ui/card"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -23,14 +23,15 @@ import PopulatedPreview from "@/components/populated-preview"
 import PreviousMessagesEditor, { Message } from "@/components/previous-messages-editor"
 import { extractVariables } from "@/lib/template-utils"
 import { useToast } from "@/components/ui/use-toast"
-import { Template, getTemplate, updateTemplate } from "@/lib/template-storage"
+import { getTemplate, updateTemplate } from "@/lib/template-storage"
 
 // Models that support reasoning effort
 const REASONING_MODELS = ["o3-mini", "o1", "o1-pro"]
 
-export default function EditorPage({ params }: { params: { id: string } }) {
+export default function EditorPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const { toast } = useToast()
+  const { id } = use(params)
   const [apiKey, setApiKey] = useState<string>("")
   const [template, setTemplate] = useState<string>("Write a $type about $topic.")
   const [systemPrompt, setSystemPrompt] = useState<string>("")
@@ -49,14 +50,20 @@ export default function EditorPage({ params }: { params: { id: string } }) {
   const [templateName, setTemplateName] = useState<string>("")
   const [previousMessages, setPreviousMessages] = useState<Message[]>([])
 
+  console.log("EditorPage.variables", variables);
+
   useEffect(() => {
-    if (params.id !== "new") {
-      const savedTemplate = getTemplate(params.id)
+    if (id !== "new") {
+      const savedTemplate = getTemplate(id)
       if (savedTemplate) {
         setTemplate(savedTemplate.template)
         setSystemPrompt(savedTemplate.systemPrompt || "")
         setTemplateName(savedTemplate.name)
         setPreviousMessages(savedTemplate.previousMessages || [])
+        // Load saved variables if they exist
+        if (savedTemplate.variables) {
+          setVariables(savedTemplate.variables)
+        }
       } else {
         toast({
           title: "Template Not Found",
@@ -66,13 +73,14 @@ export default function EditorPage({ params }: { params: { id: string } }) {
         router.push("/templates")
       }
     }
-  }, [params.id, router, toast])
+  }, [id, router, toast])
 
   useEffect(() => {
     const vars = extractVariables(template)
     setExtractedVars(vars)
 
     // Initialize variables object with empty strings for any new variables
+    // but preserve existing values from saved variables
     const newVars = { ...variables }
     vars.forEach((v) => {
       if (!(v in newVars)) {
@@ -87,7 +95,9 @@ export default function EditorPage({ params }: { params: { id: string } }) {
       }
     })
 
-    setVariables(newVars)
+    const storedVariables = getTemplate(id)?.variables || {}
+    const updatedVariables = getStoredValuesForVariables(newVars, storedVariables)
+    setVariables(updatedVariables)
   }, [template])
 
   // Update populated prompt whenever variables change
@@ -105,26 +115,28 @@ export default function EditorPage({ params }: { params: { id: string } }) {
 
   const saveTemplate = () => {
     try {
-      if (params.id === "new") {
+      if (id === "new") {
         // Create new template
         const newTemplate = {
           name: templateName || "Untitled Template",
           template,
           systemPrompt,
           previousMessages,
+          variables,
         }
-        updateTemplate(params.id, newTemplate)
+        updateTemplate(id, newTemplate)
         toast({
           title: "Template Saved",
           description: "Your template has been saved successfully.",
         })
       } else {
         // Update existing template
-        updateTemplate(params.id, {
+        updateTemplate(id, {
           name: templateName,
           template,
           systemPrompt,
           previousMessages,
+          variables,
         })
         toast({
           title: "Template Updated",
@@ -461,5 +473,17 @@ export default function EditorPage({ params }: { params: { id: string } }) {
         </div>
       </div>
     </div>
+  )
+}
+
+
+function getStoredValuesForVariables(
+  variables: Record<string, string>,
+  storedVariables: Record<string, string>
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(variables).map(([key, value]) => {
+      return [key, storedVariables[key] || value]
+    })
   )
 }
